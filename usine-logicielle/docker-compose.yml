@@ -1,0 +1,67 @@
+version: '2'
+
+services:
+  minio:
+    image: minio/minio
+    restart: always
+    volumes:
+      - ./minio:/export
+    ports:
+      - "9090:9000"
+    env_file:
+      - minio.env
+    command: server /export
+
+  gogs:
+    image: gogs/gogs
+    volumes:
+      - ./gogs:/data
+    ports:
+      - "10022:22"
+      - "3000:3000"
+    restart: always
+
+  drone-server:
+    image: drone/drone
+    privileged: true
+    ports:
+      - "8000:8000"
+      - "127.0.0.1:9000:9000"
+    volumes:
+      - ./drone:/var/lib/drone/
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: always
+    environment:
+      - DRONE_ADMIN=<admin>
+      - DRONE_OPEN=true
+      - DRONE_HOST=http://localhost:8000
+      - DRONE_DEBUG=true
+      - DRONE_SECRET=<drone-secret>
+      - DRONE_GOGS=true
+      - DRONE_GOGS_URL=http://gogs:3000
+      - DRONE_GOGS_SKIP_VERIFY=false
+    links:
+      - gogs
+  drone-agent:
+    image: drone/agent
+    restart: always
+    depends_on:
+      - drone-server
+    links:
+      - drone-server
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DRONE_SERVER=drone-server:9000
+      - DRONE_SECRET=<drone-secret>
+      - DRONE_DEBUG=true
+      - DRONE_PLUGIN_PRIVILEGED=plugins/docker,plugins/docker:*
+  registry:
+    image: registry
+    ports:
+#      - "127.0.0.1:5000:5000"
+      - "5000:5000"
+    volumes:
+      - /registry/lib:/var/lib/registry
+    restart: always
+
