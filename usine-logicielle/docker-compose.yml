@@ -26,7 +26,6 @@ services:
     privileged: true
     ports:
       - "8000:80"
-      - "127.0.0.1:9000:9000"
     volumes:
       - ./drone:/var/lib/drone/
       - /var/run/docker.sock:/var/run/docker.sock
@@ -34,7 +33,7 @@ services:
     environment:
       - DRONE_ADMIN=<admin>
       - DRONE_OPEN=true
-      - DRONE_SERVER_HOST=localhost
+      - DRONE_SERVER_HOST=zendikar.fr:8000
       - DRONE_SERVER_PROTO=http
       - DRONE_RPC_SECRET=<drone-secret>
       - DRONE_GOGS_SERVER=http://gogs:3000
@@ -42,7 +41,7 @@ services:
     links:
       - gogs
   drone-agent:
-    image: drone/agent
+    image: drone/drone-runner-docker
     restart: always
     depends_on:
       - drone-server
@@ -51,10 +50,9 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - DRONE_RPC_HOST=drone-server:9000
+      - DRONE_RPC_HOST=drone-server
       - DRONE_RPC_PROTO=http
       - DRONE_RPC_SECRET=<drone-secret>
-      - DRONE_PLUGIN_PRIVILEGED=plugins/docker,plugins/docker:*
   registry:
     image: registry
     ports:
